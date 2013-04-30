@@ -1,0 +1,70 @@
+; CMWC4096 PRNG algorithm by George Marsaglia
+;
+; This RNG has period > 2^131086, some 10^33459 times as long as that of the
+; Mersenne Twister and rates highly in all  categories. It provides the  more
+; than 10^39460 base-b digits in the expansion of (p-1)/p,  where p is the
+; prime p=18782*b^4096+1, b=2^32-1. Those base-b 'digits' are returned in
+; reverse order from a random  starting point determined by the random choice
+; of the initial values  in Q[4096] and c.
+
+macro CMWC4096 STAGE* { common
+
+  match =BSS,STAGE \{
+    align 4
+    CMWC4096.State rd 4096
+  \}
+
+  match =DATA,STAGE \{
+    align 4
+    ; choose random initial c<809430660, GM
+    CMWC4096.Carry dd 362436
+    CMWC4096.Index dd 0
+  \}
+
+  match =INIT,STAGE \{
+  \}
+
+  match =CODE,STAGE \{
+    mov eax,18782
+    mov ecx,[CMWC4096.Index]
+    mul [CMWC4096.State + rcx*4]
+    push rcx
+    inc [CMWC4096.Index]
+    and [CMWC4096.Index],$FFF
+    add eax,[CMWC4096.Carry]
+    adc edx,0
+    add eax,edx
+    sbb ecx,ecx
+    sub edx,ecx
+    sub eax,ecx
+    pop rcx
+    not eax
+    add eax,$FFFFFFFF
+    mov [CMWC4096.Carry],edx
+    mov [CMWC4096.State + rcx*4],eax
+    ; PRN in EAX
+  \}
+
+  match =SEED,STAGE \{
+  \}
+
+;  static unsigned long Q[4096],c=362436; /* choose random initial c<809430660 and */
+;                                         /* 4096 random 32-bit integers for Q[]   */
+;  unsigned long CMWC4096(void){
+;  unsigned long long t, a=18782LL;
+;  static unsigned long i=4095;
+;  unsigned long x,r=0xfffffffe;
+;     i=(i+1)&4095;
+;     t=a*Q[i]+c;
+;     c=(t>>32); x=t+c; if(x<c){x++;c++;}
+;     return(Q[i]=r-x);    }
+;
+; for testing, if Q is seeded with array index 0..4095:
+; fffa783a ffffb6a0 ffff6d42 ffff23e4 fffeda86 fffe9128 fffe47ca fffdfe6c
+; ...(4096)...
+; 95bf0756 1506be85 2a0d7d08 3f143b8c 541afa10 6921b894 7e287718 932f359c
+; ...(1000000)...
+; 9ded6455 a30cf677 a82c8899 ad4c1abb b26bacdd b78b3eff bcaad121 c1ca6343
+  match =TEST,STAGE \{
+  \}
+}

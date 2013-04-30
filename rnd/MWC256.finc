@@ -1,0 +1,42 @@
+; MWC256 PRNG algorithm by George Marsaglia, period = 2^8222
+;
+; Choosing random values for the static array Q[256] and c puts you at a
+; random starting place in the base b=2^32-1 expansion of 1/p, where p is
+; the prime 1540315826*b^256-1. The expansion of 1/p has cycles of more than
+; 10^2475 base-b 'digits', and they are returned in reverse order, from a
+; random starting point in the cycle.  One attraction of MWC256 is that it
+; allows us to index the Q-array with a byte.
+
+macro MWC256 STAGE* { common
+
+  match =BSS,STAGE \{
+    align 4
+    MWC256.State rd 256
+  \}
+
+  match =DATA,STAGE \{
+    align 4
+    MWC256.Carry dd 362436
+    MWC256.Index db 0
+  \}
+
+  match =INIT,STAGE \{
+  \}
+
+  match =CODE,STAGE \{
+    mov eax,809430660
+    movzx ecx,[MWC256.Index]
+    mul [MWC256.State + rcx*4]
+    inc [MWC256.Index]
+    add eax,[MWC256.Carry]
+    adc edx,0
+    mov [MWC256.State + rcx*4],eax
+    mov [MWC256.Carry],edx
+  \}
+
+  match =SEED,STAGE \{
+  \}
+
+  match =TEST,STAGE \{
+  \}
+}

@@ -1,0 +1,30 @@
+struc Deck {
+  .cards rd 1  ; how many left?
+  .rnd	 rd 1  ; current random data
+  .dW	 rd 1  ; inverse utility of random data
+  .deck  rb 52 ; array of cards, zero cards have been dealt out
+}
+
+Shuffle:
+    virtual at rdi
+      .this Deck
+    end virtual
+ 
+    xor ecx,ecx
+.rnd:
+    RANDOM ; macro loads EAX with random data
+ 
+    mov esi,1 ; reset inverse utility
+.next
+    add ecx,1
+    imul esi,ecx
+    jo .rnd
+    mul ecx
+    ; swap cards
+    mov bl,[.this.deck+edx]
+    mov [.this.deck+ecx-1],bl
+    mov [.this.deck+edx],cl
+    cmp ecx,52
+    jnz .next
+    retn
+

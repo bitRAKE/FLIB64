@@ -1,0 +1,30 @@
+; register based fragments, minimal instruction count
+
+macro MUL.192 reg {
+; RCX * RAX:reg
+
+    mul rcx
+    xchg rax,reg
+    xchg rdx,rcx
+    mul rdx
+    add reg,rdx
+    adc rcx,0
+
+; RCX:reg:RAX = 192 bits
+}
+
+macro MUL.256 reg3,reg2,reg1,reg0 {
+; RCX:reg3 * RAX:reg0
+    push rax reg0
+    MUL.192 reg0
+    xchg rcx,reg3
+    mov reg1,rax
+    pop reg2 rax
+    MUL.192 reg2
+    add reg2,reg1
+    adc rcx,reg0
+    adc reg3,0
+; reg3:RCX:reg2:RAX = 256 bits
+}
+
+

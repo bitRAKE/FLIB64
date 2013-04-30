@@ -1,0 +1,58 @@
+; single register division of big integer
+; inverse and multiple is prolly a good idea
+
+macro DIV.1 reg0,reg1 {
+    local ..0
+    xor edx,edx
+    mov ecx,[reg1-4]
+..0:
+    mov rax,[reg1]
+    div reg0
+    mov [reg1],rax
+    add reg1,8
+    loop ..0
+}
+
+
+; registers can be changed to any
+DIV.128:
+    cmp rax,rbx
+    jz .Z
+.div:
+    push 127
+    xor esi,esi 	; remainder
+    xor edi,edi
+    pop rbp		; bit index
+.scale:
+    add rcx,rcx 	; flexible method that shifts bits out of RDX:RCX
+    adc rdx,rdx 	; and into RDI:RSI until no bits are left
+
+    adc rsi,rsi
+    adc rdi,rdi
+
+    cmp rdi,rbx
+    jb .more
+    ja .reduce
+    cmp rsi,rax
+    jb .more
+.reduce:
+    sub rsi,rax
+    sbb rdi,rbx
+    add rcx,1
+.more:
+    dec ebp
+    jns .scale
+    mov rbx,rsi     ;rem
+    mov rax,rdi
+    retn
+;   RDX:RCX = quotient
+;   RBX:RAX = remainder
+; rare case:
+;   quotient  = zero
+;   remainder = divisor
+.Z: test rax,rax
+    jnz .div
+    xchg rbx,rdx
+    xchg rax,rcx
+    retn
+

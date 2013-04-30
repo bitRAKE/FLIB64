@@ -1,0 +1,34 @@
+; Park-Miller-Carta Random LCG, period $7FFFFFFE
+; (cleaver improvement from Steven Fuerst)
+
+macro PMC_LCG STAGE* { common
+
+  match =BSS,STAGE \{
+  \}
+
+  match =DATA,STAGE \{
+  \}
+
+  match =INIT,STAGE \{
+  \}
+
+  match =CODE,STAGE \{
+    ; in/out EAX, range 1 to 7FFFFFFEh inclusive
+	mov ecx,16807
+	mul ecx
+	add eax,eax
+	adc edx,edx
+	add edx,edx
+	add eax,edx
+	sbb edx,edx
+	shr eax,1
+	sub eax,edx
+    ; PRN in EAX
+  \}
+
+  match =SEED,STAGE \{
+  \}
+
+  match =TEST,STAGE \{
+  \}
+}

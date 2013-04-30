@@ -1,0 +1,102 @@
+; It is a direct conversion of the BBP digit-extraction algorithm
+; http://en.wikipedia.org/wiki/Bailey-Borwein-Plouffe_formula#BBP_algorithm
+; To verify changes: http://www.numberworld.org/digits/Pi/
+;USES:
+;   8366 hex digits of PI are needed for Blowfish encryption algorithm.
+;   PRNG, hash, etc...
+;
+; Here are some single digit timings on Pentium M:
+;  digit    time
+;----------------------------
+;   10^4      16 ms
+;   10^5     219 ms
+;   10^6    2860 ms
+;   10^7   33938 ms
+;   10^8  407828 ms
+
+; digits         depth
+; 14              10,000
+; 12          10,000,000
+; 13         100,000,000 ; AC52 A62F AEA6 636F
+
+; 16^EBP MOD ECX=8k+z
+; Special cases:
+;    EBP=0, return 1
+;    ECX=1, return 0
+;
+; RDX is return value
+  align 64
+npow:
+.0: mov rax,rdx
+    mul rdx
+    div rcx
+.1: bt ebp,ebx
+    jnc .2
+    imul rax,rdx,16
+    xor edx,edx
+    div rcx
+.2: sub bl,1
+    jns .0
+    retn
+  align 16
+mpow:
+    xor edx,edx
+    cmp rcx,1
+    jz .z
+    mov dl,1
+    bsr ebx,ebp
+    jnz npow.1
+.z: retn
+
+  align 16
+series:
+    xor edi,edi     ; fraction
+.1: call mpow	    ; 16^EBP mod ECX
+    xor eax,eax
+    div rcx	    ; RDX:0 / 8k+m
+    add rcx,8	    ; 8k+m, k[0,RBP]
+    add rdi,rax
+    sub ebp,1
+    jns .1
+
+    mov rbp,$1000'0000'0000'0000
+.2: mov rax,rbp
+    cdq
+    div rcx
+    add rcx,8
+    shr rbp,4
+    add rdi,rax
+    cmp rcx,rbp
+    jna .2
+    retn
+
+PiHexDigit: ; RBP is digit
+    push 6 rbp 5 rbp 4 rbp 1
+    pop rcx
+    call series
+    push rdi
+    pop rsi
+
+    add rsi,rsi
+    pop rbp rcx
+    call series
+    sub rsi,rdi
+
+    add rsi,rsi
+    pop rbp rcx
+    call series
+    sub rsi,rdi
+
+    pop rbp rcx
+    call series
+    sub rsi,rdi
+    retn
+; top nibble(s) of RSI is hex digit(s) PI = [3.]
+; 243F6 A8885 A308D 31319 8A2E0 37073 44A40 93822
+; 299F3 1D008 2EFA9 8EC4E 6C894 52821 E638D 01377 ...
+
+;            10,000: f169b 5f18a 8c73e e0b5e 57368 f6c79 f4bb7 a5959
+;        10,000,000: d54d9 cfdd1 53adf 017ee ead0f daf40 7f653 df38a
+;    10,000,000,000: 0baeb 3801c d8b48 a016f f4185 2fea0 1aa89 477e4
+; 1,000,000,000,000: cddee 9d16e b4a29 5e569 54e5e 30b51 24a9e a02a9
+; 8,304,820,237,250: c7426 62109 951cc ed0b7 161db 29b76 fb885 97e6e
